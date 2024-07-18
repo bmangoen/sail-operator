@@ -360,3 +360,76 @@ If you want to delete the Istio CRDs, you can use the following command.
 ```bash
 $ kubectl get crds -oname | grep istio.io | xargs kubectl delete
 ```
+
+## Upgrade from 2.x to 3
+
+### Upgrade
+
+tbd
+
+### Uninstalling Service Mesh 2.x
+
+#### Removing the Service Mesh control plane
+
+You can remove the Red Hat OpenShift Service Mesh control plane by using the CLI. In this example, `istio-system` is the name of the control plane project.
+
+*Steps*
+
+1. Log in to the OpenShift Container Platform CLI.
+
+1. Run this command to retrieve the name of the installed `ServiceMeshControlPlane`.
+
+    ```bash
+    $ kubectl get smcp -n istio-system
+    ```
+
+1. Replace `<name_of_custom_resource>` with the output from the previous command, and run the following command to delete the `ServiceMeshControlPlane` resource.
+
+    ```bash
+    $ kubectl delete smcp <name_of_custom_resource> -n istio-system
+    ```
+
+#### Removing the installed Service Mesh Operator 2.x
+
+*Steps*
+
+1. Run this command to retrieve the name of the current `ClusterServiceVersion`.
+
+    ```bash
+    $ kubectl get subscription servicemeshoperator -n openshift-operators -o yaml | grep currentCSV | cut -f 2 -d ':'
+    ```
+
+1. Delete the `Subscription`.
+
+    ```bash
+    $ kubectl delete subscription servicemeshoperator -n openshift-operators
+    ```
+
+1. Delete the CSV for the Operator in the target namespace using the `<name_of_the_currentCSV>` value from the first step.
+
+    ```bash
+    $ kubectl delete clusterserviceversion $csv -n openshift-operators
+    ```
+
+#### Cleaning up the Service Mesh Operator 2.x resources
+
+*Steps*
+
+1. Delete all the `DaemonSet`.
+
+    ```bash
+    $ kubectl -n openshift-operators delete ds -lmaistra-version
+    ```
+
+1. Delete all the `CustomResourceDefinition`.
+
+    ```bash
+    $ kubectl get crds -o name | grep ".*\\.maistra\\.io" | xargs -r -n 1 kubectl delete
+    ```
+
+1. Delete all the `ConfigMap` and `ServiceAccount`.
+
+    ```bash
+    $ kubectl -n openshift-operators delete cm maistra-operator-cabundle
+    $ kubectl -n openshift-operators delete cm -lmaistra-version
+    ```
