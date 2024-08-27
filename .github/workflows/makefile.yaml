@@ -1,0 +1,17 @@
+name: Release CI
+
+on:
+  push:
+    branches:
+      - 'release-*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: build and push operator image
+      run: make HUB=quay.io/bmangoen docker-push
+
+    - name: bundle
+      run: make HUB=quay.io/bmangoen bundle
