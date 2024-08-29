@@ -9,7 +9,7 @@ on:
         default: '0.2.0'
 
 env:
-  GIT_USER: ${{ secrets.GIT_USER }}
+  GITHUB_USER: ${{ secrets.GIT_USER }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   VERSION: ${{ inputs.release_version }}
 
