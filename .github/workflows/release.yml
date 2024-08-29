@@ -27,8 +27,8 @@ jobs:
 
     - uses: actions/checkout@v4
 
-    - name: Build and push operator image
-      run: make -e HUB=quay.io/bmangoen -e TAG=$VERSION docker-push
+    # - name: Build and push operator image
+    #   run: make -e HUB=quay.io/bmangoen -e TAG=$VERSION docker-push
 
     - name: Publish bundle in OperatorHub
       run: make -e OPERATOR_VERSION=$VERSION -e OWNER=bmangoen -e FORK=bmangoen bundle-publish
