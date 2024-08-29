@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: "Define the release version"
+        required: true
+        default: '0.2.0'
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  release:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Login to quay.io
+      uses: docker/login-action@v3
+      with:
+        registry: quay.io
+        username: ${{ secrets.QUAY_ID }}
+        password: ${{ secrets.QUAY_PWD }}
+
+    - uses: actions/checkout@v4
+        
+    - name: Build and push operator image
+      run: make HUB=quay.io/bmangoen docker-push
+
+    - name: Publish bundle in OperatorHub
+      run: make -e OPERATOR_VERSION="${{ inputs.release_version }}" -e OWNER=bmangoen -e FORK=bmangoen bundle-publish
+    
+    - name: Create GitHub release
+      run: make -e VERSION="${{ inputs.release_version }}" create-gh-release
