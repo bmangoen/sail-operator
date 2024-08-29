@@ -33,8 +33,8 @@ jobs:
 
     - name: Publish bundle in OperatorHub
       run: |
-        git config user.name "$(git log -n 1 --pretty=format:%an)" &&
-        git config user.email "$(git log -n 1 --pretty=format:%ae)" &&
+        git config user.name "$(git log -n 1 --pretty=format:%an)"
+        git config user.email "$(git log -n 1 --pretty=format:%ae)"
         make -e OPERATOR_VERSION=$VERSION -e OWNER=bmangoen -e FORK=bmangoen bundle-publish
     
     - name: Create GitHub release
