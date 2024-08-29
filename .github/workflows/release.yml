@@ -7,6 +7,9 @@ on:
         description: "Define the release version"
         required: true
         default: '0.2.0'
+  push:
+    branches:
+      - release-**
 
 env:
   GIT_USER: ${{ secrets.GIT_USER }}
@@ -32,7 +35,7 @@ jobs:
       run: make HUB=quay.io/bmangoen docker-push
 
     - name: Publish bundle in OperatorHub
-      run: make -e OPERATOR_VERSION="${{ VERSION }}" -e OWNER=bmangoen -e FORK=bmangoen bundle-publish
+      run: make -e OPERATOR_VERSION="${VERSION}" -e OWNER=bmangoen -e FORK=bmangoen bundle-publish
     
     - name: Create GitHub release
-      run: make -e VERSION="${{ VERSION }}" create-gh-release
+      run: make -e VERSION="${VERSION}" create-gh-release
