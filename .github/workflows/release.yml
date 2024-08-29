@@ -1,9 +1,8 @@
-name: Build
+name: Release
 
 on:
   push:
     branches:
-    - 'main'
     - release-**
 
 jobs:
@@ -24,5 +23,8 @@ jobs:
     - name: build and push operator image
       run: make HUB=quay.io/bmangoen docker-push
 
-    - name: bundle
+    - name: Publish bundle in OperatorHub
       run: make HUB=quay.io/bmangoen bundle
+
+    - name: Create GitHub release
+      run: make create-gh-release
