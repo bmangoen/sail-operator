@@ -4,6 +4,12 @@ on:
   push:
     branches:
     - release-**
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: "Define the release version"
+        required: true
+        default: '0.2.0'
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -27,7 +33,7 @@ jobs:
       run: make HUB=quay.io/bmangoen docker-push
 
     - name: Publish bundle in OperatorHub
-      run: make HUB=quay.io/bmangoen bundle
+      run: make -e OPERATOR_VERSION="${{ github.event.inputs.release_version }}" -e OWNER=bmangoen -e FORK=bmangoen bundle-publish
     
     - name: Create GitHub release
-      run: make create-gh-release
+      run: make -e VERSION="${{ github.event.inputs.release_version }}" create-gh-release
