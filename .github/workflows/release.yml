@@ -18,7 +18,7 @@ env:
 
 jobs:
   release:
-    if: ${{ github.event_name == 'push' && contains(github.ref_name, "release-") }}
+    if: ${{ github.event_name == 'push' && contains(github.ref_name, 'release-') }}
     runs-on: ubuntu-latest
 
     steps:
