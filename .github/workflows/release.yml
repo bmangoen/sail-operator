@@ -26,7 +26,8 @@ jobs:
         password: ${{ secrets.QUAY_PWD }}
 
     - uses: actions/checkout@v4
-        
+    - uses: fregante/setup-git-user@v2
+
     - name: Build and push operator image
       run: make -e HUB=quay.io/bmangoen -e TAG=$VERSION docker-push
 
