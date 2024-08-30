@@ -13,6 +13,11 @@ on:
         type: boolean
         required: false
         default: false
+      is_draft_release:
+        description: "Draft release"
+        type: boolean
+        required: false
+        default: true
 
 run-name: Release ${{ inputs.release_version }}
 
@@ -68,6 +73,8 @@ jobs:
     - name: Create GitHub release
       run: |
         make create-gh-release \
-          -e GH_PRE_RELEASE=$GH_PRE_RELEASE
+          -e GH_PRE_RELEASE=$GH_PRE_RELEASE \
+          -e GH_RELEASE_DRAFT=$GH_RELEASE_DRAFT
       env:
         GH_PRE_RELEASE: ${{ github.event.inputs.is_pre_release == 'true' }}
+        GH_RELEASE_DRAFT: ${{ github.event.inputs.is_draft_release == 'true' }}
