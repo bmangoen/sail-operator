@@ -43,12 +43,22 @@ jobs:
       env:
         CHANNELS: ${{ inputs.bundle_channels }}
 
-    - name: Publish bundle in OperatorHub
+    - name: Publish bundle in operatorhub.io
+      run: |
+        make bundle-publish \
+          -e OPERATOR_VERSION=$VERSION \
+          -e OPERATOR_HUB=community-operators \
+          -e OWNER=cagoucoding \
+          -e FORK=bmangoen
+    # OWNER=k8s-operatorhub
+
+    - name: Publish bundle in OpenShift OperatorHub
       run: |
         make bundle-publish \
           -e OPERATOR_VERSION=$VERSION \
           -e OWNER=bmangoen \
           -e FORK=bmangoen
-    
+    # OWNER=redhat-openshift-ecosystem (default)
+
     - name: Create GitHub release
       run: make create-gh-release
