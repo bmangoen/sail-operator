@@ -9,8 +9,6 @@ on:
         default: '0.2.0'
 
 env:
-  GIT_USER: ${{ secrets.GIT_USER }}
-  GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
   VERSION: ${{ inputs.release_version }}
 
 jobs:
@@ -35,7 +33,7 @@ jobs:
     #   run: make -e HUB=quay.io/bmangoen -e TAG=$VERSION docker-push
 
     - name: Publish bundle in OperatorHub
-      run: make -e GIT_USER=$GIT_USER -e GITHUB_TOKEN=$GITHUB_TOKEN -e OPERATOR_VERSION=$VERSION -e OWNER=bmangoen -e FORK=bmangoen bundle-publish
+      run: make -e GIT_USER=${{ secrets.GIT_USER }} -e GITHUB_TOKEN=${{ secrets.GIT_TOKEN }} -e OPERATOR_VERSION=$VERSION -e OWNER=bmangoen -e FORK=bmangoen bundle-publish
     
     - name: Create GitHub release
       run: make -e VERSION=$VERSION create-gh-release
