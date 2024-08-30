@@ -1,25 +1,24 @@
-name: Release
+name: Release Workflow
 
 on:
   workflow_dispatch:
     inputs:
       release_version:
-        description: "Define the release version"
+        description: "Release version"
         required: true
-        default: '0.2.0'
+      bundle_channels:
+        description: "Bundle channels"
+        required: true
+        default: "candidates"
 
 env:
   GIT_USER: ${{ secrets.GIT_USER }}
   GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
-  RELEASE_VERSION: ${{ inputs.release_version }}
+  VERSION: ${{ inputs.release_version }}
 
 jobs:
   release:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
-      pull-requests: write
 
     steps:
     - name: Login to quay.io
@@ -32,19 +31,24 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Build and push operator image
-      run: make docker-push
-      env:
-        HUB: quay.io/bmangoen
-        TAG: $RELEASE_VERSION
+      run: |
+        make docker-push \
+          -e HUB=quay.io/bmangoen \
+          -e TAG=$VERSION
 
-    # - name: Publish bundle in OperatorHub
-    #   run: make bundle-publish
-    #   env:
-    #     OPERATOR_VERSION: $RELEASE_VERSION
-    #     OWNER: bmangoen
-    #     FORK: bmangoen
+    - name: Generate bundle metadata
+      run: |
+        make bundle \
+         -e CHANNELS=$CHANNELS
+      env:
+        CHANNELS: ${{ inputs.bundle_channels }}
+
+    - name: Publish bundle in OperatorHub
+      run: |
+        make bundle-publish \
+          -e OPERATOR_VERSION=$VERSION \
+          -e OWNER=bmangoen \
+          -e FORK=bmangoen
     
     - name: Create GitHub release
       run: make create-gh-release
-      env:
-        VERSION: $RELEASE_VERSION
