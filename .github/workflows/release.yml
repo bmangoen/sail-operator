@@ -11,6 +11,8 @@ on:
         required: true
         default: "candidates"
 
+run-name: Release ${{ inputs.release_version }}
+
 env:
   GIT_USER: ${{ secrets.GIT_USER }}
   GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
