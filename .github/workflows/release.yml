@@ -8,6 +8,11 @@ on:
         description: "Bundle channels"
         required: true
         default: "candidates"
+      is_pre_release:
+        description: "Pre-release"
+        type: boolean
+        required: false
+        default: false
 
 run-name: Release ${{ inputs.release_version }}
 
@@ -62,3 +67,5 @@ jobs:
 
     - name: Create GitHub release
       run: make create-gh-release
+      env:
+        GH_PRE_RELEASE: ${{ inputs.is_pre_release == 'true' }}
