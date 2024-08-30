@@ -70,4 +70,4 @@ jobs:
         make create-gh-release \
           -e GH_PRE_RELEASE=$GH_PRE_RELEASE
       env:
-        GH_PRE_RELEASE: ${{ inputs.is_pre_release == 'true' }}
+        GH_PRE_RELEASE: ${{ github.event.inputs.is_pre_release == 'true' }}
