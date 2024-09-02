@@ -96,6 +96,9 @@ BUNDLE_DIR="${CUR_DIR}"/../../bundle
 mkdir -p "${OPERATORS_DIR}"
 cp -a "${BUNDLE_DIR}"/. "${OPERATORS_DIR}"
 
+skipInDryRun git config user.name "$(git log -n 1 --pretty=format:%an)"
+skipInDryRun git config user.email "$(git log -n 1 --pretty=format:%ae)"
+
 TITLE="operator ${OPERATOR_NAME} (${OPERATOR_VERSION})"
 skipInDryRun git add .
 skipInDryRun git commit -s -m"${TITLE}"
