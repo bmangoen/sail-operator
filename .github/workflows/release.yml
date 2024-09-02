@@ -1,3 +1,5 @@
+name: Release workflow
+
 on:
   workflow_dispatch:
     inputs:
@@ -8,16 +10,16 @@ on:
         description: "Bundle channels"
         required: true
         default: "candidates"
-      is_pre_release:
-        description: "Pre-release"
-        type: boolean
-        required: false
-        default: false
       is_draft_release:
         description: "Draft release"
         type: boolean
         required: false
         default: true
+      is_pre_release:
+        description: "Pre-release"
+        type: boolean
+        required: false
+        default: false
 
 run-name: Release ${{ inputs.release_version }}
 
@@ -42,7 +44,7 @@ jobs:
 
     - name: Build and push operator image
       run: |
-        make docker-push \
+        make docker-buildx \
           -e HUB=quay.io/bmangoen \
           -e TAG=$VERSION
 
