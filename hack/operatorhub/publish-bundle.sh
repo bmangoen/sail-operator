@@ -24,8 +24,8 @@ GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 GIT_USER="${GIT_USER:-}"
 
 # Using the last commiter git config user.name and user.email
-GIT_CONFIG_USER_NAME="${GIT_CONFIG_USERNAME:-$(git log -n 1 --pretty=format:%an)}"
-GIT_CONFIG_USER_EMAIL="${GIT_CONFIG_USER_EMAIL:-$(git log -n 1 --pretty=format:%ae)}"
+GIT_CONFIG_USER_NAME="${GIT_CONFIG_USERNAME:-}"
+GIT_CONFIG_USER_EMAIL="${GIT_CONFIG_USER_EMAIL:-}"
 
 # The OPERATOR_NAME is defined in Makefile
 : "${OPERATOR_NAME:?"Missing OPERATOR_NAME variable"}"
@@ -100,8 +100,8 @@ BUNDLE_DIR="${CUR_DIR}"/../../bundle
 mkdir -p "${OPERATORS_DIR}"
 cp -a "${BUNDLE_DIR}"/. "${OPERATORS_DIR}"
 
-skipInDryRun git config user.name "${GIT_CONFIG_USER_NAME}"
-skipInDryRun git config user.email "${GIT_CONFIG_USER_EMAIL}"
+skipInDryRun (! git config --global user.name && git config user.name "${GIT_CONFIG_USER_NAME}")
+skipInDryRun (! git config --global user.email && git config user.email "${GIT_CONFIG_USER_EMAIL}")
 
 TITLE="operator ${OPERATOR_NAME} (${OPERATOR_VERSION})"
 skipInDryRun git add .

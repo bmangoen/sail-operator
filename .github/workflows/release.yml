@@ -61,7 +61,9 @@ jobs:
           -e OPERATOR_VERSION=$VERSION \
           -e OPERATOR_HUB=community-operators \
           -e OWNER=cagoucoding \
-          -e FORK=bmangoen
+          -e FORK=bmangoen \
+          -e GIT_CONFIG_USER_NAME="${{ github.actor }}" \
+          -e GIT_CONFIG_USER_EMAIL="${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
     # OWNER=k8s-operatorhub
 
     - name: Publish bundle in OpenShift OperatorHub
@@ -70,6 +72,8 @@ jobs:
           -e OPERATOR_VERSION=$VERSION \
           -e OWNER=bmangoen \
           -e FORK=bmangoen
+          -e GIT_CONFIG_USER_NAME="${{ github.actor }}" \
+          -e GIT_CONFIG_USER_EMAIL="${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
     # OWNER=redhat-openshift-ecosystem (default)
 
     - name: Create GitHub release
