@@ -100,8 +100,13 @@ BUNDLE_DIR="${CUR_DIR}"/../../bundle
 mkdir -p "${OPERATORS_DIR}"
 cp -a "${BUNDLE_DIR}"/. "${OPERATORS_DIR}"
 
-! git config --global user.name && skipInDryRun git config --global user.name "${GIT_CONFIG_USER_NAME}"
-! git config --global user.email && skipInDryRun git config --global user.email "${GIT_CONFIG_USER_EMAIL}"
+if ! git config --global user.name; then
+  skipInDryRun git config user.name "${GIT_CONFIG_USER_NAME}"
+fi
+
+if ! git config --global user.email; then
+  skipInDryRun git config user.email "${GIT_CONFIG_USER_EMAIL}"
+fi
 
 TITLE="operator ${OPERATOR_NAME} (${OPERATOR_VERSION})"
 skipInDryRun git add .
