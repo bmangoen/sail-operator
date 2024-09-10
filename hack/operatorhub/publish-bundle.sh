@@ -23,8 +23,7 @@ source "${CUR_DIR}"/../validate_semver.sh
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 GIT_USER="${GIT_USER:-}"
 
-# Using the last commiter git config user.name and user.email
-GIT_CONFIG_USER_NAME="${GIT_CONFIG_USERNAME:-}"
+GIT_CONFIG_USER_NAME="${GIT_CONFIG_USER_NAME:-}"
 GIT_CONFIG_USER_EMAIL="${GIT_CONFIG_USER_EMAIL:-}"
 
 # The OPERATOR_NAME is defined in Makefile
