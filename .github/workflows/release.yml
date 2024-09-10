@@ -63,7 +63,7 @@ jobs:
           -e OWNER=cagoucoding \
           -e FORK=bmangoen \
           -e GIT_CONFIG_USER_NAME="${{ github.actor }}" \
-          -e GIT_CONFIG_USER_EMAIL="${{ github.actor }}@users.noreply.github.com"
+          -e GIT_CONFIG_USER_EMAIL="${{ github.actor_id }}@users.noreply.github.com"
     # OWNER=k8s-operatorhub
 
     - name: Publish bundle in OpenShift OperatorHub

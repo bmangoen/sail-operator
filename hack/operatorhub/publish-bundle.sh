@@ -105,7 +105,7 @@ if ! git config --global user.name; then
 fi
 
 if ! git config --global user.email; then
-  skipInDryRun git config --global user.email ${GIT_CONFIG_USER_EMAIL}
+  skipInDryRun git config --global user.email "${GIT_CONFIG_USER_EMAIL}"
 fi
 
 TITLE="operator ${OPERATOR_NAME} (${OPERATOR_VERSION})"
