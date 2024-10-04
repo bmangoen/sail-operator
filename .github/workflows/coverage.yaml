@@ -2,7 +2,7 @@ name: Code coverage workflow
 
 on: [push, pull_request]
 
-run-name: "${{ github.event.pull_request.title }}: ${{ github.event.pull_request.title }}"
+run-name: "coverage: ${{ github.event_name }}"
 
 jobs:
   coverage:
