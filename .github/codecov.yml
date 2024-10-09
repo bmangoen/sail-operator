@@ -1,4 +1,4 @@
 ignore:
-  - "api/"
-  - "hack/"
-  - "tests/"
+  - "api"
+  - "hack"
+  - "tests"
