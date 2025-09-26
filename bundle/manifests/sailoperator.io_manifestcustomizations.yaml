@@ -1,0 +1,168 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  creationTimestamp: null
+  name: manifestcustomizations.sailoperator.io
+spec:
+  group: sailoperator.io
+  names:
+    categories:
+    - istio-io
+    kind: ManifestCustomization
+    listKind: ManifestCustomizationList
+    plural: manifestcustomizations
+    singular: manifestcustomization
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: The number of target references this customization applies to.
+      jsonPath: .spec.targetRefs
+      name: Targets
+      type: string
+    - description: The number of rules defined in this customization.
+      jsonPath: .spec.rules
+      name: Rules
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          ManifestCustomization allows users to customize Helm-generated Kubernetes manifests
+          with fine-grained control over how they are applied to the cluster.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ManifestCustomizationSpec defines the desired state of ManifestCustomization
+            properties:
+              rules:
+                description: Rules defines the customization rules to apply to matched
+                  resources.
+                items:
+                  description: ManifestCustomizationRule defines a customization rule
+                    that can be applied to resources
+                  properties:
+                    actions:
+                      description: Actions defines a list of actions to apply to the
+                        matched resources. All actions will be applied.
+                      items:
+                        description: ManifestCustomizationAction defines an action
+                          to apply to a matched resource
+                        properties:
+                          field:
+                            description: Field specifies the field path to customize
+                              using dot notation (e.g., metadata.labels, spec.containers[0].image).
+                            type: string
+                          operation:
+                            description: Operation specifies the type of customization
+                              to apply.
+                            enum:
+                            - IGNORE
+                            type: string
+                          value:
+                            description: Value specifies the value to use for the
+                              customization operation (optional, used for future operations).
+                            type: string
+                        required:
+                        - field
+                        - operation
+                        type: object
+                      type: array
+                    applyTo:
+                      description: |-
+                        ApplyTo defines a list of resource matchers that determine which generated resources this rule applies to.
+                        A resource matches if it satisfies ANY of the applyTo criteria.
+                      items:
+                        description: ResourceMatcher defines criteria for matching
+                          Kubernetes resources
+                        properties:
+                          group:
+                            description: Group specifies the API group of the resource
+                              (e.g., apps, admissionregistration.k8s.io). Empty string
+                              matches core group.
+                            type: string
+                          kind:
+                            description: Kind specifies the resource kind (e.g., Deployment,
+                              Service).
+                            type: string
+                          name:
+                            description: Name specifies the resource name. Supports
+                              wildcards using * and ?.
+                            type: string
+                          namespace:
+                            description: Namespace specifies the target namespace.
+                              Supports wildcards using * and ?. Empty matches cluster-scoped
+                              resources.
+                            type: string
+                        required:
+                        - kind
+                        type: object
+                      type: array
+                  required:
+                  - actions
+                  - applyTo
+                  type: object
+                type: array
+              targetRefs:
+                description: TargetRefs specifies the Istio, IstioCNI, or ZTunnel
+                  resources that this customization applies to.
+                items:
+                  description: TargetRef identifies a target resource for customization
+                  properties:
+                    kind:
+                      description: Kind specifies the kind of the target resource
+                        (Istio, IstioCNI, or ZTunnel).
+                      enum:
+                      - Istio
+                      - IstioCNI
+                      - ZTunnel
+                      type: string
+                    name:
+                      description: Name specifies the name of the target resource.
+                        If empty, applies to all resources of the specified kind in
+                        the namespace.
+                      type: string
+                    namespace:
+                      description: Namespace specifies the namespace of the target
+                        resource. If empty, applies to cluster-scoped resources or
+                        all namespaces.
+                      type: string
+                  required:
+                  - kind
+                  type: object
+                type: array
+            required:
+            - rules
+            - targetRefs
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null
