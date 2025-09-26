@@ -24,6 +24,7 @@ import (
 
 	"github.com/go-logr/logr"
 	v1 "github.com/istio-ecosystem/sail-operator/api/v1"
+	"github.com/istio-ecosystem/sail-operator/api/v1alpha1"
 	"github.com/istio-ecosystem/sail-operator/pkg/config"
 	"github.com/istio-ecosystem/sail-operator/pkg/constants"
 	"github.com/istio-ecosystem/sail-operator/pkg/enqueuelogger"
@@ -81,6 +82,7 @@ func NewReconciler(cfg config.ReconcilerConfig, client client.Client, scheme *ru
 // +kubebuilder:rbac:groups=sailoperator.io,resources=istiorevisions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=sailoperator.io,resources=istiorevisions/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=sailoperator.io,resources=istiorevisions/finalizers,verbs=update
+// +kubebuilder:rbac:groups=sailoperator.io,resources=manifestcustomizations,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources="*",verbs="*"
 // +kubebuilder:rbac:groups="networking.k8s.io",resources="networkpolicies",verbs="*"
 // +kubebuilder:rbac:groups="policy",resources="poddisruptionbudgets",verbs="*"
@@ -172,15 +174,22 @@ func (r *Reconciler) installHelmCharts(ctx context.Context, rev *v1.IstioRevisio
 		BlockOwnerDeletion: ptr.Of(true),
 	}
 
+	// Create target reference for manifest customization
+	targetRef := &v1alpha1.TargetRef{
+		Kind:      "IstioRevision",
+		Name:      rev.Name,
+		Namespace: rev.Namespace,
+	}
+
 	values := helm.FromValues(rev.Spec.Values)
-	_, err := r.ChartManager.UpgradeOrInstallChart(ctx, r.getChartDir(rev, constants.IstiodChartName),
-		values, rev.Spec.Namespace, getReleaseName(rev, constants.IstiodChartName), &ownerReference)
+	_, err := r.ChartManager.UpgradeOrInstallChartWithCustomization(ctx, r.getChartDir(rev, constants.IstiodChartName),
+		values, rev.Spec.Namespace, getReleaseName(rev, constants.IstiodChartName), &ownerReference, r.Client, targetRef)
 	if err != nil {
 		return fmt.Errorf("failed to install/update Helm chart %q: %w", constants.IstiodChartName, err)
 	}
 	if rev.Name == v1.DefaultRevision {
-		_, err := r.ChartManager.UpgradeOrInstallChart(ctx, r.getChartDir(rev, constants.BaseChartName),
-			values, r.Config.OperatorNamespace, getReleaseName(rev, constants.BaseChartName), &ownerReference)
+		_, err := r.ChartManager.UpgradeOrInstallChartWithCustomization(ctx, r.getChartDir(rev, constants.BaseChartName),
+			values, r.Config.OperatorNamespace, getReleaseName(rev, constants.BaseChartName), &ownerReference, r.Client, targetRef)
 		if err != nil {
 			return fmt.Errorf("failed to install/update Helm chart %q: %w", constants.BaseChartName, err)
 		}

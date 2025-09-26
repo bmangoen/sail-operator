@@ -152,6 +152,7 @@ rules:
   - sailoperator.io
   resources:
   - istios
+  - manifestcustomizations
   verbs:
   - create
   - delete

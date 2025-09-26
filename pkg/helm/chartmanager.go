@@ -21,12 +21,16 @@ import (
 
 	"helm.sh/helm/v3/pkg/action"
 	chartLoader "helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/postrender"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/istio-ecosystem/sail-operator/api/v1alpha1"
 )
 
 type ChartManager struct {
@@ -143,6 +147,102 @@ func (h *ChartManager) UpgradeOrInstallChart(
 		installAction.SkipCRDs = true
 		installAction.DisableOpenAPIValidation = true
 
+		rel, err = installAction.RunWithContext(ctx, chart, values)
+		if err != nil {
+			return nil, fmt.Errorf("failed to install helm chart %s: %w", chart.Name(), err)
+		}
+	}
+	return rel, nil
+}
+
+func (h *ChartManager) UpgradeOrInstallChartWithCustomization(
+	ctx context.Context, chartDir string, values Values,
+	namespace, releaseName string, ownerReference *metav1.OwnerReference,
+	client client.Client, targetRef *v1alpha1.TargetRef,
+) (*release.Release, error) {
+	log := logf.FromContext(ctx)
+
+	cfg, err := h.newActionConfig(ctx, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	chart, err := chartLoader.Load(chartDir)
+	if err != nil {
+		return nil, err
+	}
+
+	rel, err := getRelease(cfg, releaseName)
+	if err != nil {
+		return rel, err
+	}
+
+	releaseExists := rel != nil
+
+	// A helm release can be stuck in pending state when:
+	// - operator exit/crashes during helm install/upgrade/uninstall
+	// - lost connection to apiserver
+	// - helm release timeouts (context timeouts, cancellation)
+	// - etc
+	// let's try to brutally unlock it and then remediate later by either rollback or uninstall
+	if releaseExists && rel.Info.Status.IsPending() {
+		log.V(2).Info("Unlocking helm release", "status", rel.Info.Status, "release", releaseName)
+		rel.SetStatus(release.StatusFailed, fmt.Sprintf("Release unlocked from %q state", rel.Info.Status))
+		if err := cfg.Releases.Update(rel); err != nil {
+			return nil, fmt.Errorf("failed to unlock helm release %s: %w", releaseName, err)
+		}
+	}
+
+	switch {
+	case !releaseExists:
+		break
+	case rel.Info.Status == release.StatusDeployed:
+		break
+	case rel.Info.Status == release.StatusFailed && rel.Version > 1:
+		log.V(2).Info("Performing helm rollback", "release", releaseName)
+		if err := action.NewRollback(cfg).Run(releaseName); err != nil {
+			return nil, fmt.Errorf("failed to roll back helm release %s: %w", releaseName, err)
+		}
+	case rel.Info.Status == release.StatusUninstalling,
+		rel.Info.Status == release.StatusFailed && rel.Version <= 1:
+		log.V(2).Info("Performing helm uninstall", "release", releaseName, "status", rel.Info.Status)
+
+		if _, err := action.NewUninstall(cfg).Run(releaseName); err != nil {
+			return nil, fmt.Errorf("failed to uninstall helm release %s: %w", releaseName, err)
+		}
+	default:
+		log.V(2).Info("Unexpected release status", "release", releaseName, "status", rel.Info.Status)
+	}
+
+	// Create the appropriate post-renderer based on whether customization is enabled
+	var postRenderer postrender.PostRenderer
+	helmRenderer := NewHelmPostRenderer(ownerReference, "", releaseExists)
+
+	if client != nil && targetRef != nil {
+		postRenderer = NewManifestCustomizationPostRenderer(client, ctx, *targetRef, helmRenderer.(HelmPostRenderer))
+	} else {
+		postRenderer = helmRenderer
+	}
+
+	if releaseExists {
+		log.V(2).Info("Performing helm upgrade", "chartName", chart.Name())
+		updateAction := action.NewUpgrade(cfg)
+		updateAction.PostRenderer = postRenderer
+		updateAction.MaxHistory = 1
+		updateAction.SkipCRDs = true
+		updateAction.DisableOpenAPIValidation = true
+		rel, err = updateAction.RunWithContext(ctx, releaseName, chart, values)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update helm chart %s: %w", chart.Name(), err)
+		}
+	} else {
+		log.V(2).Info("Performing helm install", "chartName", chart.Name())
+		installAction := action.NewInstall(cfg)
+		installAction.PostRenderer = postRenderer
+		installAction.Namespace = namespace
+		installAction.ReleaseName = releaseName
+		installAction.SkipCRDs = true
+		installAction.DisableOpenAPIValidation = true
 		rel, err = installAction.RunWithContext(ctx, chart, values)
 		if err != nil {
 			return nil, fmt.Errorf("failed to install helm chart %s: %w", chart.Name(), err)

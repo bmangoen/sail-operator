@@ -78,6 +78,7 @@ func NewReconciler(cfg config.ReconcilerConfig, client client.Client, scheme *ru
 // +kubebuilder:rbac:groups=sailoperator.io,resources=istiocnis,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=sailoperator.io,resources=istiocnis/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=sailoperator.io,resources=istiocnis/finalizers,verbs=update
+// +kubebuilder:rbac:groups=sailoperator.io,resources=manifestcustomizations,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources="*",verbs="*"
 // +kubebuilder:rbac:groups="networking.k8s.io",resources="networkpolicies",verbs="*"
 // +kubebuilder:rbac:groups="policy",resources="poddisruptionbudgets",verbs="*"

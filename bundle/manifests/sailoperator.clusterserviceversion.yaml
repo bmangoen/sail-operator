@@ -34,7 +34,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: OpenShift Optional, Integration & Delivery, Networking, Security
     containerImage: quay.io/sail-dev/sail-operator:1.28-latest
-    createdAt: "2025-09-09T05:05:30Z"
+    createdAt: "2025-09-28T06:32:41Z"
     description: The Sail Operator manages the lifecycle of your Istio control plane. It provides custom resources for you to deploy and manage your control plane components.
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "true"
@@ -134,6 +134,9 @@ spec:
       - kind: WorkloadGroup
         name: workloadgroups.networking.istio.io
         version: v1beta1
+      - kind: ManifestCustomization
+        name: manifestcustomizations.sailoperator.io
+        version: v1alpha1
       - kind: AuthorizationPolicy
         name: authorizationpolicies.security.istio.io
         version: v1
@@ -618,6 +621,7 @@ spec:
                 - sailoperator.io
               resources:
                 - istios
+                - manifestcustomizations
               verbs:
                 - create
                 - delete

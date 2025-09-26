@@ -77,6 +77,7 @@ func NewReconciler(cfg config.ReconcilerConfig, client client.Client, scheme *ru
 // +kubebuilder:rbac:groups=sailoperator.io,resources=ztunnels,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=sailoperator.io,resources=ztunnels/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=sailoperator.io,resources=ztunnels/finalizers,verbs=update
+// +kubebuilder:rbac:groups=sailoperator.io,resources=manifestcustomizations,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources="*",verbs="*"
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles;clusterrolebindings;roles;rolebindings,verbs="*"
 // +kubebuilder:rbac:groups="apps",resources=deployments;daemonsets,verbs="*"
