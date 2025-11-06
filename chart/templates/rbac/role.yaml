@@ -250,3 +250,29 @@ rules:
     - get
     - patch
     - update
+- apiGroups:
+  - x.sailoperator.io
+  resources:
+  - manifestcustomizations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - x.sailoperator.io
+  resources:
+  - manifestcustomizations/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - x.sailoperator.io
+  resources:
+  - manifestcustomizations/status
+  verbs:
+  - get
+  - patch
+  - update

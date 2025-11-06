@@ -24,6 +24,7 @@ import (
 
 	"github.com/go-logr/logr"
 	v1 "github.com/istio-ecosystem/sail-operator/api/v1"
+	xv1alpha1 "github.com/istio-ecosystem/sail-operator/api/x/v1alpha1"
 	"github.com/istio-ecosystem/sail-operator/pkg/config"
 	"github.com/istio-ecosystem/sail-operator/pkg/constants"
 	"github.com/istio-ecosystem/sail-operator/pkg/enqueuelogger"
@@ -269,6 +270,10 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	istioCniHandler := wrapEventHandler(logger, handler.EnqueueRequestsFromMapFunc(r.mapIstioCniToReconcileRequests))
 
+	// manifestCustomizationHandler handles ManifestCustomizations that target this IstioRevision.
+	// The handler triggers reconciliation of the IstioRevision to apply customizations.
+	manifestCustomizationHandler := wrapEventHandler(logger, handler.EnqueueRequestsFromMapFunc(r.mapManifestCustomizationToReconcileRequests))
+
 	// endpointSliceHandler triggers reconciliation if the EndpointSlice is owned directly by an IstioRevision,
 	// or if it's owned by an Endpoints object which in turn is owned by an IstioRevision.
 	endpointSliceHandler := wrapEventHandler(logger, handler.EnqueueRequestsFromMapFunc(r.mapEndpointSliceToReconcileRequests))
@@ -332,6 +337,9 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 		// +lint-watches:ignore: IstioCNI (not found in charts, but this controller needs to watch it to update the IstioRevision status)
 		Watches(&v1.IstioCNI{}, istioCniHandler).
+
+		// +lint-watches:ignore: ManifestCustomization (not found in charts, but must be watched to reconcile IstioRevision when customizations change)
+		Watches(&xv1alpha1.ManifestCustomization{}, manifestCustomizationHandler).
 
 		// +lint-watches:ignore: ValidatingAdmissionPolicy (TODO: fix this when CI supports golang 1.22 and k8s 1.30)
 		// +lint-watches:ignore: ValidatingAdmissionPolicyBinding (TODO: fix this when CI supports golang 1.22 and k8s 1.30)
@@ -676,6 +684,39 @@ func (r *Reconciler) mapIstioCniToReconcileRequests(ctx context.Context, _ clien
 		}
 	}
 	return reqs
+}
+
+// mapManifestCustomizationToReconcileRequests maps ManifestCustomization changes to IstioRevision reconcile requests
+func (r *Reconciler) mapManifestCustomizationToReconcileRequests(ctx context.Context, obj client.Object) []reconcile.Request {
+	log := logf.FromContext(ctx)
+	mc, ok := obj.(*xv1alpha1.ManifestCustomization)
+	if !ok {
+		return nil
+	}
+
+	var requests []reconcile.Request
+	for _, targetRef := range mc.Spec.TargetRefs {
+		switch targetRef.Kind {
+		case "Istio":
+			// For Istio targets, find the IstioRevision created by that Istio resource
+			// The IstioRevision is created with the same name as the Istio resource
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: targetRef.Name},
+			})
+		case "IstioRevision":
+			// For IstioRevision targets, directly enqueue the IstioRevision
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: targetRef.Name},
+			})
+		}
+	}
+
+	if len(requests) > 0 {
+		log.Info("ManifestCustomization change triggers IstioRevision reconciliation",
+			"ManifestCustomization", mc.Name, "targetCount", len(requests))
+	}
+
+	return requests
 }
 
 // ignoreStatusChange returns a predicate that ignores watch events where only the resource status changes; if

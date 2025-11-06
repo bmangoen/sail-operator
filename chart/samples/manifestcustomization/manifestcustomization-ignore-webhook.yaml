@@ -1,0 +1,28 @@
+# This sample demonstrates how to use ManifestCustomization to ignore specific fields
+# in a MutatingWebhookConfiguration, preventing the operator from reconciling them.
+# This is useful when an external controller modifies these fields and you want to
+# avoid reconciliation loops.
+
+apiVersion: x.sailoperator.io/v1alpha1
+kind: ManifestCustomization
+metadata:
+  name: ignore-webhook-selector
+  namespace: istio-system
+spec:
+  # Target the default Istio control plane
+  targetRefs:
+    - kind: Istio
+      name: default
+
+  # Define rules for customizing resources
+  rules:
+    - applyTo:
+        # Match the sidecar injector webhook configuration
+        - group: admissionregistration.k8s.io
+          kind: MutatingWebhookConfiguration
+          name: istio-sidecar-injector
+      actions:
+        - operation: IGNORE
+          field: metadata.labels.app
+        - operation: IGNORE
+          field: webhooks[name:rev.namespace.sidecar-injector.istio.io].namespaceSelector.matchExpressions

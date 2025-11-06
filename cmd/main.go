@@ -25,6 +25,7 @@ import (
 	"github.com/istio-ecosystem/sail-operator/controllers/istiocni"
 	"github.com/istio-ecosystem/sail-operator/controllers/istiorevision"
 	"github.com/istio-ecosystem/sail-operator/controllers/istiorevisiontag"
+	"github.com/istio-ecosystem/sail-operator/controllers/manifestcustomization"
 	"github.com/istio-ecosystem/sail-operator/controllers/webhook"
 	"github.com/istio-ecosystem/sail-operator/controllers/ztunnel"
 	"github.com/istio-ecosystem/sail-operator/pkg/config"
@@ -152,6 +153,7 @@ func main() {
 	}
 
 	chartManager := helm.NewChartManager(mgr.GetConfig(), os.Getenv("HELM_DRIVER"))
+	chartManager.SetClient(mgr.GetClient())
 
 	reconcilerCfg.Platform, err = config.DetectPlatform(mgr.GetConfig())
 	if err != nil {
@@ -197,6 +199,13 @@ func main() {
 		SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ZTunnel")
+		os.Exit(1)
+	}
+
+	err = manifestcustomization.NewReconciler(mgr.GetClient(), mgr.GetScheme()).
+		SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ManifestCustomization")
 		os.Exit(1)
 	}
 

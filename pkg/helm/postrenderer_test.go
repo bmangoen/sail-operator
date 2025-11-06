@@ -308,6 +308,7 @@ spec:
 				ownerReference: tc.ownerReference,
 				ownerNamespace: tc.ownerNamespace,
 				isUpdate:       tc.isUpdate,
+				customizations: nil, // No customizations for these tests
 			}
 
 			actual, err := postRenderer.Run(bytes.NewBufferString(tc.input))

@@ -1,0 +1,228 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: manifestcustomizations.x.sailoperator.io
+spec:
+  group: x.sailoperator.io
+  names:
+    categories:
+    - istio-io
+    kind: ManifestCustomization
+    listKind: ManifestCustomizationList
+    plural: manifestcustomizations
+    singular: manifestcustomization
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: The current state of this object.
+      jsonPath: .status.state
+      name: State
+      type: string
+    - description: The age of the object
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ManifestCustomization is the Schema for the manifestcustomizations
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ManifestCustomizationSpec defines the desired state of ManifestCustomization
+            properties:
+              rules:
+                description: Rules defines a list of customization rules to apply
+                  to the matched resources.
+                items:
+                  description: CustomizationRule defines a rule for customizing matched
+                    resources
+                  properties:
+                    actions:
+                      description: |-
+                        Actions specifies the list of actions to apply to matched resources.
+                        All actions in the list will be applied.
+                      items:
+                        description: CustomizationAction defines an action to apply
+                          to a matched resource
+                        properties:
+                          field:
+                            description: |-
+                              Field specifies the field path to which the operation applies.
+                              Uses the Istio operator tpath syntax for field path resolution.
+                              Examples:
+                                - "metadata.labels.foo"
+                                - "spec.replicas"
+                                - "webhooks[name:my-webhook].namespaceSelector"
+                            type: string
+                          operation:
+                            description: |-
+                              Operation specifies the type of operation to perform.
+                              Currently only IGNORE is supported.
+                            enum:
+                            - IGNORE
+                            type: string
+                        required:
+                        - field
+                        - operation
+                        type: object
+                      minItems: 1
+                      type: array
+                    applyTo:
+                      description: |-
+                        ApplyTo specifies which resources this rule applies to.
+                        A resource matches if it matches ANY of the applyTo criteria.
+                      items:
+                        description: ResourceMatcher defines criteria for matching
+                          Kubernetes resources
+                        properties:
+                          group:
+                            description: |-
+                              Group is the API group of the resource (e.g., "apps", "v1", "admissionregistration.k8s.io").
+                              Empty string matches the core API group.
+                            type: string
+                          kind:
+                            description: Kind is the kind of the resource (e.g., "Deployment",
+                              "ConfigMap", "MutatingWebhookConfiguration").
+                            type: string
+                          name:
+                            description: Name is the name of the resource. Supports
+                              wildcards.
+                            type: string
+                          namespace:
+                            description: Namespace is the namespace of the resource.
+                              Supports wildcards.
+                            type: string
+                        required:
+                        - kind
+                        type: object
+                      minItems: 1
+                      type: array
+                  required:
+                  - actions
+                  - applyTo
+                  type: object
+                minItems: 1
+                type: array
+              targetRefs:
+                description: TargetRefs specifies the Istio, IstioCNI, or ZTunnel
+                  resources to which this customization applies.
+                items:
+                  description: TargetRef identifies a target resource to which customizations
+                    should be applied
+                  properties:
+                    kind:
+                      description: 'Kind of the target resource. Must be one of: Istio,
+                        IstioCNI, ZTunnel'
+                      enum:
+                      - Istio
+                      - IstioCNI
+                      - ZTunnel
+                      type: string
+                    name:
+                      description: Name of the target resource
+                      type: string
+                  required:
+                  - kind
+                  - name
+                  type: object
+                minItems: 1
+                type: array
+            required:
+            - rules
+            - targetRefs
+            type: object
+          status:
+            description: ManifestCustomizationStatus defines the observed state of
+              ManifestCustomization
+            properties:
+              conditions:
+                description: Represents the latest available observations of the object's
+                  current state.
+                items:
+                  description: ManifestCustomizationCondition represents a specific
+                    observation of the ManifestCustomization object's state.
+                  properties:
+                    lastTransitionTime:
+                      description: LastTransitionTime is the last time the condition
+                        transitioned from one status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: Message is a human-readable message indicating
+                        details about the last transition.
+                      type: string
+                    reason:
+                      description: Reason is a unique, single-word, CamelCase reason
+                        for the condition's last transition.
+                      type: string
+                    status:
+                      description: Status is the status of this condition. Can be
+                        True, False or Unknown.
+                      type: string
+                    type:
+                      description: Type is the type of this condition.
+                      type: string
+                  type: object
+                type: array
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the most recent generation observed for this
+                  ManifestCustomization object. It corresponds to the object's generation, which is
+                  updated on mutation by the API Server.
+                format: int64
+                type: integer
+              state:
+                description: State reports the current state of the object.
+                type: string
+              targetRefStatuses:
+                description: TargetRefs contains the status for each target reference
+                items:
+                  description: TargetRefStatus represents the status of a target reference
+                  properties:
+                    applied:
+                      description: Applied indicates whether the customization has
+                        been successfully applied to this target
+                      type: boolean
+                    kind:
+                      description: Kind is the kind of the target resource
+                      type: string
+                    message:
+                      description: Message provides additional information about the
+                        status
+                      type: string
+                    name:
+                      description: Name is the name of the target resource
+                      type: string
+                  required:
+                  - applied
+                  - kind
+                  - name
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -23,6 +23,7 @@ import (
 
 	"github.com/go-logr/logr"
 	v1 "github.com/istio-ecosystem/sail-operator/api/v1"
+	xv1alpha1 "github.com/istio-ecosystem/sail-operator/api/x/v1alpha1"
 	"github.com/istio-ecosystem/sail-operator/pkg/config"
 	"github.com/istio-ecosystem/sail-operator/pkg/constants"
 	"github.com/istio-ecosystem/sail-operator/pkg/enqueuelogger"
@@ -225,6 +226,10 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	namespaceHandler := wrapEventHandler(logger, handler.EnqueueRequestsFromMapFunc(r.mapNamespaceToReconcileRequest))
 
+	// manifestCustomizationHandler handles ManifestCustomizations that target this IstioCNI.
+	// The handler triggers reconciliation of the IstioCNI to apply customizations.
+	manifestCustomizationHandler := wrapEventHandler(logger, handler.EnqueueRequestsFromMapFunc(r.mapManifestCustomizationToReconcileRequests))
+
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{
 			LogConstructor: func(req *reconcile.Request) logr.Logger {
@@ -263,6 +268,9 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&corev1.Namespace{}, namespaceHandler).
 		Watches(&rbacv1.ClusterRole{}, ownedResourceHandler).
 		Watches(&rbacv1.ClusterRoleBinding{}, ownedResourceHandler).
+
+		// +lint-watches:ignore: ManifestCustomization (not found in charts, but must be watched to reconcile IstioCNI when customizations change)
+		Watches(&xv1alpha1.ManifestCustomization{}, manifestCustomizationHandler).
 		Complete(reconciler.NewStandardReconcilerWithFinalizer[*v1.IstioCNI](r.Client, r.Reconcile, r.Finalize, constants.FinalizerName))
 }
 
@@ -370,6 +378,31 @@ func (r *Reconciler) mapNamespaceToReconcileRequest(ctx context.Context, ns clie
 			requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: cni.Name}})
 		}
 	}
+	return requests
+}
+
+// mapManifestCustomizationToReconcileRequests maps ManifestCustomization changes to IstioCNI reconcile requests
+func (r *Reconciler) mapManifestCustomizationToReconcileRequests(ctx context.Context, obj client.Object) []reconcile.Request {
+	log := logf.FromContext(ctx)
+	mc, ok := obj.(*xv1alpha1.ManifestCustomization)
+	if !ok {
+		return nil
+	}
+
+	var requests []reconcile.Request
+	for _, targetRef := range mc.Spec.TargetRefs {
+		if targetRef.Kind == "IstioCNI" {
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: targetRef.Name},
+			})
+		}
+	}
+
+	if len(requests) > 0 {
+		log.Info("ManifestCustomization change triggers IstioCNI reconciliation",
+			"ManifestCustomization", mc.Name, "targetCount", len(requests))
+	}
+
 	return requests
 }
 

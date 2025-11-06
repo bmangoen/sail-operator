@@ -19,19 +19,24 @@ import (
 	"errors"
 	"fmt"
 
+	xv1alpha1 "github.com/istio-ecosystem/sail-operator/api/x/v1alpha1"
+	"github.com/istio-ecosystem/sail-operator/pkg/manifestcustomization"
 	"helm.sh/helm/v3/pkg/action"
 	chartLoader "helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/postrender"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type ChartManager struct {
 	restClientGetter genericclioptions.RESTClientGetter
 	driver           string
+	client           client.Client
 }
 
 // NewChartManager creates a new Helm chart manager using cfg as the configuration
@@ -42,7 +47,14 @@ func NewChartManager(cfg *rest.Config, driver string) *ChartManager {
 	return &ChartManager{
 		restClientGetter: NewRESTClientGetter(cfg),
 		driver:           driver,
+		client:           nil, // Will be set by SetClient
 	}
+}
+
+// SetClient sets the Kubernetes client for the ChartManager
+// Needed to query for ManifestCustomizations
+func (h *ChartManager) SetClient(c client.Client) {
+	h.client = c
 }
 
 // newActionConfig Create a new Helm action config from in-cluster service account
@@ -120,11 +132,17 @@ func (h *ChartManager) UpgradeOrInstallChart(
 		return nil, fmt.Errorf("unexpected helm release status %s", rel.Info.Status)
 	}
 
+	// Create post-renderer with manifest customizations
+	postRenderer, err := h.createPostRenderer(ctx, ownerReference, namespace, releaseExists)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create post-renderer: %w", err)
+	}
+
 	if releaseExists {
 		log.V(2).Info("Performing helm upgrade", "chartName", chart.Name())
 
 		updateAction := action.NewUpgrade(cfg)
-		updateAction.PostRenderer = NewHelmPostRenderer(ownerReference, "", true)
+		updateAction.PostRenderer = postRenderer
 		updateAction.MaxHistory = 1
 		updateAction.SkipCRDs = true
 		updateAction.DisableOpenAPIValidation = true
@@ -137,7 +155,7 @@ func (h *ChartManager) UpgradeOrInstallChart(
 		log.V(2).Info("Performing helm install", "chartName", chart.Name())
 
 		installAction := action.NewInstall(cfg)
-		installAction.PostRenderer = NewHelmPostRenderer(ownerReference, "", false)
+		installAction.PostRenderer = postRenderer
 		installAction.Namespace = namespace
 		installAction.ReleaseName = releaseName
 		installAction.SkipCRDs = true
@@ -149,6 +167,24 @@ func (h *ChartManager) UpgradeOrInstallChart(
 		}
 	}
 	return rel, nil
+}
+
+// createPostRenderer applies both operator-managed transformations and user-defined ManifestCustomizations
+func (h *ChartManager) createPostRenderer(ctx context.Context, ownerReference *metav1.OwnerReference, namespace string, isUpdate bool) (postrender.PostRenderer, error) {
+	var customizations []xv1alpha1.ManifestCustomization
+
+	// Query for ManifestCustomizations if client is available
+	if h.client != nil && ownerReference != nil {
+		var err error
+		// TODO: Use QueryForTarget instead of QueryAll
+		// customizations, err = manifestcustomization.QueryForTarget(ctx, h.client, ownerReference.Kind, ownerReference.Name, namespace)
+		customizations, err = manifestcustomization.QueryAll(ctx, h.client, namespace)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query for manifest customizations: %w", err)
+		}
+	}
+
+	return NewHelmPostRenderer(ownerReference, "", isUpdate, customizations, h.client), nil
 }
 
 // UninstallChart removes a chart from the cluster
